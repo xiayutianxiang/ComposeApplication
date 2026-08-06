@@ -35,14 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.lifecycleScope
 import com.example.composeapplication.ui.theme.ComposeApplicationTheme
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,10 +45,6 @@ class MainActivity : ComponentActivity() {
             ComposeApplicationTheme {
                 MyApp(modifier = Modifier.fillMaxSize())
             }
-        }
-
-        lifecycleScope.launch {
-            Mode()
         }
     }
 }
@@ -166,16 +155,5 @@ fun OnboardingScreen(modifier: Modifier = Modifier, onContinueClicked: () -> Uni
 fun MyAppPreview() {
     ComposeApplicationTheme() {
         MyApp(Modifier.fillMaxSize())
-    }
-}
-
-suspend fun Mode() {
-    withContext(Dispatchers.IO + CoroutineName("MyIO") + CoroutineExceptionHandler{
-        _,e->
-        run {
-            println("e : $e")
-        }
-    } ) {
-        delay(1000)
     }
 }

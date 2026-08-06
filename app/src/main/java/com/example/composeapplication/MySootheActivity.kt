@@ -51,14 +51,21 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 
 
 class MySootheActivity : ComponentActivity() {
+
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
-            MySootheSpace()
+            val windowsSize = calculateWindowSizeClass(this)
+            MySootheSpace(windowsSize)
         }
     }
 }
@@ -298,14 +305,23 @@ fun MySootheLandSpace() {
 }
 
 @Composable
-fun MySootheSpace() {
-    ComposeApplicationTheme {
-        Surface(color = MaterialTheme.colorScheme.background) {
-            Scaffold(
-                bottomBar = { SootheBottomNavigation() },
-            ) { paddingValues ->
-                HomeScreen(Modifier.padding(paddingValues))
+fun MySootheSpace(windowsSize: WindowSizeClass) {
+    when(windowsSize.widthSizeClass) {
+        WindowWidthSizeClass.Compact -> {
+            ComposeApplicationTheme {
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    Scaffold(
+                        bottomBar = { SootheBottomNavigation() },
+                    ) { paddingValues ->
+                        HomeScreen(Modifier.padding(paddingValues))
+                    }
+                }
             }
+        }
+
+        WindowWidthSizeClass.Expanded -> {
+            MySootheLandSpace()
+
         }
     }
 }
