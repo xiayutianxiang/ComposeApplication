@@ -1,4 +1,4 @@
-# Android 开发高频知识点 01：状态保存与恢复
+# Android 开发高频知识点 01：状态管理、保存与恢复
 
 ## 1. `ViewModel`、`rememberSaveable` 和本地持久化分别解决什么问题？
 
@@ -101,3 +101,66 @@ class SearchViewModel(
 - [Activity 生命周期与界面状态保存](https://developer.android.com/guide/components/activities/activity-lifecycle)
 - [保存界面状态](https://developer.android.com/topic/libraries/architecture/saving-states)
 - [ViewModel 的 SavedState 模块](https://developer.android.com/topic/libraries/architecture/viewmodel/viewmodel-savedstate)
+
+## 3. Compose 中为什么要做状态提升？如何实现单向数据流？
+
+### 标准回答
+
+状态提升（State Hoisting）是把状态从子 Composable 移到共同的父级，由父级持有状态并通过参数下发、通过回调接收事件。这样可以让 UI 组件保持无状态、易复用和易测试，并明确“状态向下、事件向上”的单向数据流。
+
+```kotlin
+@Composable
+fun SearchRoute(viewModel: SearchViewModel = viewModel()) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    SearchContent(
+        keyword = uiState.keyword,
+        onKeywordChange = viewModel::onKeywordChange
+    )
+}
+
+@Composable
+fun SearchContent(
+    keyword: String,
+    onKeywordChange: (String) -> Unit
+) {
+    TextField(value = keyword, onValueChange = onKeywordChange)
+}
+```
+
+### 面试易错点
+
+1. 不要为了“无状态”把所有状态都塞进 `ViewModel`；纯 UI 瞬时状态（例如输入框展开状态）可以由合适的 Composable 层持有。
+2. `remember` 只在重组之间保留值，配置变更后会丢失；需要跨配置变更保存的轻量值使用 `rememberSaveable`。
+3. `derivedStateOf` 适合输入变化频繁但输出不需要同频更新的派生状态，不应对每个普通计算都包一层。
+
+## 4. `StateFlow` 和 `SharedFlow` 在 ViewModel 中如何选择？
+
+### 标准回答
+
+`StateFlow` 表示“当前状态”：必须有初始值，始终保存最新值，新订阅者会立即收到当前值，适合页面 UI 状态。
+
+`SharedFlow` 表示“事件流”：可以配置 replay 和缓冲策略，适合一次性事件，例如显示 Snackbar、导航或打开系统页面。事件是否需要重放、没有订阅者时是否允许丢失，应由业务语义决定。
+
+```kotlin
+class DetailViewModel : ViewModel() {
+    private val _uiState = MutableStateFlow(DetailUiState())
+    val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<DetailEvent>()
+    val events: SharedFlow<DetailEvent> = _events.asSharedFlow()
+
+    fun onSave() {
+        viewModelScope.launch {
+            repository.save()
+            _events.emit(DetailEvent.ShowSavedMessage)
+        }
+    }
+}
+```
+
+### 面试易错点
+
+1. 不要把一次性导航事件直接放进 `StateFlow`；页面重建后可能重复消费，或者因为状态一直保留而重复导航。
+2. UI 应在生命周期感知的收集方式中订阅，例如 Compose 使用 `collectAsStateWithLifecycle()`；普通协程收集应使用 `repeatOnLifecycle`。
+3. `SharedFlow` 默认 `replay = 0`，没有活跃订阅者时发出的事件可能无法被之后的订阅者收到；需要可靠投递时应重新设计事件模型或配合持久化状态。
